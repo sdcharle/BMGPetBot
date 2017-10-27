@@ -1,2 +1,1 @@
-# BMGPetBot
-Preliminary Ideas For the Petbot Project for #BMGHack
+Help shelter pets find a home.
