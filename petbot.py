@@ -19,7 +19,7 @@ import requests
 import tweepy
 import json
 import os
-import petfetcher
+from fetchers.petfetcher import get_petfinder_pet
 
 def create_message(greeting, pet_description, pet_name, pet_link):
 	if pet_description[0] in ('a','e','i','o','u'):
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 	auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
 	auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 	api = tweepy.API(auth)
-	pet = petfetcher.get_petfinder_pet("Bloomington,IN")
+	pet = get_petfinder_pet("Bloomington,IN", pick_random = True)
 	print(pet)
 	tweet(api, create_message("Hi, I'm", 
 		pet["description"],

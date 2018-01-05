@@ -3,6 +3,8 @@ This code is for interaction with Pet-related APIs
 Petfinder API: https://www.petfinder.com/developers/api-docs
 
 10/26/2017 SDC Initial
+
+1/4/2017 SDC minor restructuring plus 'pet randomization'
 """
 
 from config import *
@@ -10,6 +12,7 @@ import requests
 import tweepy
 import json
 import os
+from random import randrange
 
 PETFINDER_URL = "http://api.petfinder.com/"
 
@@ -21,7 +24,8 @@ PETFINDER_ADJECTIVES = {
 	'noDogs':'',
 	'noCats':'',
 	'noKids':'',
-	'hasShots':''
+	'hasShots':'',
+	'specialNeeds':''
 }
 
 """
@@ -46,12 +50,13 @@ def get_petfinder_photo(pet_json):
 Pull info for a pet
 location can be zip or City, State
 """
-def get_petfinder_pet(location):
+def get_petfinder_pet(location, count=25, pick_random = False):
 	params = {
 	  'format':'json',
 	  'key':PETFINDER_API_KEY,
 	 'location':location,
-	  'output':'full'
+	  'output':'full',
+	  'count': count
 	}
 	r = requests.post("%s/pet.find" % (PETFINDER_URL), params)
 	d = json.loads(r.text)
@@ -69,7 +74,11 @@ def get_petfinder_pet(location):
 		elif status_message:
 			raise Exception('Unexpected error: %s' % status_message)
 
-	pet = d["petfinder"]["pets"]["pet"][0]
+	if pick_random:
+		index = randrange(len(d["petfinder"]["pets"]["pet"]))
+		pet = d["petfinder"]["pets"]["pet"][index]
+	else:
+		pet = d["petfinder"]["pets"]["pet"][0]
 	return {
 		"pic": get_petfinder_photo(pet),
 		"link":"https://www.petfinder.com/petdetail/%s" % (pet['id']['$t']),
@@ -85,7 +94,11 @@ def get_petfinder_sex(sex_abbreviation):
 
 def get_petfinder_option(options):
 	if options['option']:
-		options =  ",".join([PETFINDER_ADJECTIVES[opt['$t']] for opt in options['option'] if opt])
+		# note - weirdly handles single option...
+		if type(options['option']) == dict:
+			options = PETFINDER_ADJECTIVES.get(options['option']['$t'])
+		else:
+			options =  ",".join([PETFINDER_ADJECTIVES.get(opt['$t'],"") for opt in options['option'] if opt])
 	else:
   		options = option_hash['$t']
 	if options[0] == ',':
