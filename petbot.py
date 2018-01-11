@@ -1,17 +1,15 @@
 """
-
 Twitterbot for posting about animals needing homes.
 For #BMGHack, others are welcome to adapt to their purposes.
 Thanks to https://github.com/codeforamerica/CutePets for the Ruby based version
 
 10/26/2017 SDC initial
+1/6/2018 SDC Pull from the city website now. Leaving petfinder functionality in there in case somebody wants to use it.
 
 TODOs:
-pick a pet at random from those returned
-(possibly) don't tweet the same pet again (although arguably it doesn't hurt)
 put up in the cloud
 Docker file so anybody can play along with ease 
-Add a bunch of random variations on 'Hi I'm' like the cutepets gang did
+'punch up' the text
 """
 
 from config import *
@@ -19,43 +17,30 @@ import requests
 import tweepy
 import json
 import os
-from fetchers.petfetcher import get_petfinder_pet
-
-def create_message(greeting, pet_description, pet_name, pet_link):
-	if pet_description[0] in ('a','e','i','o','u'):
-		full_description = "an %s" % (pet_description)
-	else:
-		full_description = "a %s" % (pet_description)
-	message = "%s %s. I am %s. %s" % (greeting, pet_name, full_description, pet_link)
-	if len(message) > 140:
-		message = message[:140] # this could lead to some weird looking tweets
-	return message
+from fetchers.petfetcher import get_city_website_pet
 
 """
-Tweet about said pet - TO DO, is there a better way to handle the images
+Tweet about said pet
 """
 def tweet(api, message, pet_pic_url):
     filename = 'temp.jpg'
-    request = requests.get(pet_pic_url, stream=True)
-    if request.status_code == 200:
-        with open(filename, 'wb') as image:
-            for chunk in request:
-                image.write(chunk)
-        api.update_with_media(filename, status=message)
-        os.remove(filename)
+    if pet_pic_url:
+        request = requests.get(pet_pic_url, stream=True)
+        if request.status_code == 200:
+            with open(filename, 'wb') as image:
+                for chunk in request:
+                    image.write(chunk)
+            api.update_with_media(filename, status=message)
+            os.remove(filename)
+        else:
+            print("Unable to download image")
     else:
-        print("Unable to download image")
+        api.update(status=message)
 
 if __name__ == '__main__':
-
 	auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
 	auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
 	api = tweepy.API(auth)
-	pet = get_petfinder_pet("Bloomington,IN", pick_random = True)
+	pet = get_city_website_pet(pick_random = True)
 	print(pet)
-	tweet(api, create_message("Hi, I'm", 
-		pet["description"],
-		pet["name"],
-		pet["link"]),
-		pet["pic"]
-		)
+	tweet(api, "%s\n%s" % (pet["description"], pet["link"]), pet["pic"])

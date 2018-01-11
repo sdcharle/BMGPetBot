@@ -3,8 +3,8 @@ This code is for interaction with Pet-related APIs
 Petfinder API: https://www.petfinder.com/developers/api-docs
 
 10/26/2017 SDC Initial
-
-1/4/2017 SDC minor restructuring plus 'pet randomization'
+1/4/2018 SDC minor restructuring plus 'pet randomization'
+1/5/2018 SDC pull from Bloomington website
 """
 
 from config import *
@@ -13,9 +13,15 @@ import tweepy
 import json
 import os
 from random import randrange
+from bs4 import BeautifulSoup
+import requests
+import random
+import re
+
+name_re = re.compile('\.w?(.*?)is:');
+CITY_SITE_BASE = 'https://bloomington.in.gov'
 
 PETFINDER_URL = "http://api.petfinder.com/"
-
 PETFINDER_ADJECTIVES = {
 	'housebroken':'house trained',
 	'housetrained':'house trained',
@@ -27,6 +33,46 @@ PETFINDER_ADJECTIVES = {
 	'hasShots':'',
 	'specialNeeds':''
 }
+
+"""
+City site stuff
+"""
+def get_city_website_pet(pick_random = False):
+	request = requests.get('%s/animal-shelter/animals' % CITY_SITE_BASE)
+	request_text = request.text
+	soup = BeautifulSoup(request_text, "html.parser") #, "html.parser")
+	nodes = soup.find_all("article") # section",{"id":"asm_animals"})
+	if pick_random:
+		index = random.randrange(len(nodes))
+	else:
+		index = 0
+	node = nodes[index]
+	url = node.a['href']
+	img = None
+	try:
+		img = node.img['src']
+		img = '%s%s' % (CITY_SITE_BASE, img)
+	except:
+		print("No image found")
+	r = requests.get('%s/%s' % (CITY_SITE_BASE, url))
+	soup = BeautifulSoup(r.text, "html.parser")
+	#intro
+	nodes = soup.find_all("div",{"id":"intro"})
+	animule_text = nodes[0].text.split('Apply')[0].strip()
+	splitty = name_re.split(animule_text)
+	print(splitty)
+	if len(splitty) != 1:
+		animule_text = ("%s is: %s" % (splitty[-2], splitty[-1]))
+	animule_text = '\n'.join(animule_text.split("\n")[:6])
+	animule_text = animule_text.replace("Adoption Fee Waived","Adoption Fee Waived.")
+# trim if too long!
+	animule_text = animule_text[:280]
+
+	return {
+		"pic": img,
+		"link":'%s%s' % (CITY_SITE_BASE, url),
+		"description": animule_text
+	}
 
 """
 construct a description for petfinder pet
@@ -110,6 +156,16 @@ def get_petfinder_breed(breeds):
 		return "%s mix" % ("/".join(breeds['breed']))
 	else:
 		return breeds['breed']['$t']
+
+def create_petfinder_message(greeting, pet_description, pet_name, pet_link):
+	if pet_description[0] in ('a','e','i','o','u'):
+		full_description = "an %s" % (pet_description)
+	else:
+		full_description = "a %s" % (pet_description)
+	message = "%s %s. I am %s. %s" % (greeting, pet_name, full_description, pet_link)
+	if len(message) > 200:
+		message = message[:200] # this could lead to some weird looking tweets
+	return message
 
 # ye olde style testing
 if __name__ == '__main__':
