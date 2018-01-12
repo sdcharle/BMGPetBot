@@ -8,4 +8,3 @@ from fetchers.petfetcher import get_petfinder_pet
 if __name__ == '__main__':
 	print(get_petfinder_pet("47401"))
 	print(get_petfinder_pet("47401",pick_random=True))
-	print(get_petfinder_pet("47401",pick_random=True))	
