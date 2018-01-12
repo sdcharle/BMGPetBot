@@ -43,7 +43,6 @@ def get_citywebsite_pet(pick_random = False):
 	print("got dat soup")
 	nodes = soup.find_all("article") # section",{"id":"asm_animals"})
 	print("%s animules" % len(nodes))
-	print("found shit")
 
 	if pick_random:
 		index = random.randrange(len(nodes))
