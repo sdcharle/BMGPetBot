@@ -10,6 +10,9 @@ TODOs:
 put up in the cloud
 Docker file so anybody can play along with ease 
 'punch up' the text
+
+Note, have to change to not save temp file
+
 """
 
 from config import *
@@ -21,6 +24,8 @@ from fetchers.petfetcher import get_city_website_pet
 
 """
 Tweet about said pet
+
+Can't save to local file on AWS Lambda tho
 """
 def tweet(api, message, pet_pic_url):
     filename = 'temp.jpg'
@@ -37,10 +42,17 @@ def tweet(api, message, pet_pic_url):
     else:
         api.update(status=message)
 
+
+def post_a_pet():
+    auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+    auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
+    api = tweepy.API(auth)
+    pet = get_city_website_pet(pick_random = True)
+    print(pet)
+    tweet(api, "%s\n%s" % (pet["description"], pet["link"]), pet["pic"])
+
+def handler(event, context):
+    post_a_pet()
+
 if __name__ == '__main__':
-	auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
-	auth.set_access_token(TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_TOKEN_SECRET)
-	api = tweepy.API(auth)
-	pet = get_city_website_pet(pick_random = True)
-	print(pet)
-	tweet(api, "%s\n%s" % (pet["description"], pet["link"]), pet["pic"])
+    post_a_pet()
