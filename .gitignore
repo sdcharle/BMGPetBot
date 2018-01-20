@@ -1,4 +1,5 @@
 config.py
 __pycache__
-lambda_deploy
-lambda_deploy/*.*
+lambda_deploy/venv_petbot
+lambda_deploy/venv_petbot/*.*
+PetBot.zip
