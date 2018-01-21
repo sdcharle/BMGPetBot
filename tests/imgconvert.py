@@ -5,12 +5,13 @@ Thanks to https://github.com/codeforamerica/CutePets for the Ruby based version
 
 10/26/2017 SDC initial
 1/6/2018 SDC Pull from the city website now. Leaving petfinder functionality in there in case somebody wants to use it.
-1/20/2018 SDC don't save image to temp file! Also additional function for lambda stuff
 
 TODOs:
 put up in the cloud
 Docker file so anybody can play along with ease 
 'punch up' the text
+
+Note, have to change to not save temp file
 
 """
 
@@ -20,25 +21,27 @@ import tweepy
 import json
 import os
 from fetchers.petfetcher import get_city_website_pet
-import base64
-import io
 
 """
 Tweet about said pet
+
+Can't save to local file on AWS Lambda tho
 """
 def tweet(api, message, pet_pic_url):
     filename = 'temp.jpg'
     if pet_pic_url:
-        img_file = get_image_blob(pet_pic_url)
-        api.update_with_media(filename, status=message, file = img_file)
+        request = requests.get(pet_pic_url, stream=True)
+        if request.status_code == 200:
+            with open(filename, 'wb') as image:
+                for chunk in request:
+                    image.write(chunk)
+            api.update_with_media(filename, status=message)
+            os.remove(filename)
+        else:
+            print("Unable to download image")
     else:
         api.update(status=message)
 
-def get_image_blob(url):
-    response = requests.get(url)
-    pic = base64.b64encode(response.content)
-    pic = io.BytesIO(base64.b64decode(pic))
-    return pic
 
 def post_a_pet():
     auth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
